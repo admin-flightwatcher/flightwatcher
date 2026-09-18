@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// 2. Add your Supabase import from lib/supabase.ts
-import { supabase } from "../../../lib/supabase";
+// Import matching your current folder path structure
+import { supabase } from "../../lib/supabase";
 
-// 1. Tell the page about the new fields in the interface
+// Tell TypeScript about our Alert fields schema
 interface Alert {
   id: string;
   origin: string;
@@ -23,14 +23,13 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // States to handle inline editing
+  // States to handle inline editing controls
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTargetPrice, setEditTargetPrice] = useState("");
   const [editEmail, setEditEmail] = useState("");
 
-  // Wrapped the fetching logic so we can call it again to refresh the page
+  // Wrapped the fetching logic so we can call it again to refresh the dashboard indicators
   async function fetchAlerts() {
-    // 2. Load the new tracking fields from the Supabase select query
     const { data, error } = await supabase
       .from("Alerts")
       .select("id, origin, destination, target_price, email, alert_sent, active, last_price_found, last_airline, last_checked");
@@ -52,13 +51,13 @@ export default function AlertsPage() {
     fetchAlerts();
   }, []);
 
-  // Calculate statistics automatically from the alerts state array
+  // Compute metric calculations from internal component state array
   const totalAlerts = alerts.length;
   const activeAlerts = alerts.filter((alert) => alert.active).length;
   const pausedAlerts = alerts.filter((alert) => !alert.active).length;
   const triggeredAlerts = alerts.filter((alert) => alert.alert_sent).length;
 
-  // Pause / Resume handler
+  // Pause / Resume handler to toggle the active flag
   async function toggleMonitoring(id: string, currentActiveStatus: boolean) {
     const { error } = await supabase
       .from("Alerts")
@@ -74,7 +73,7 @@ export default function AlertsPage() {
     fetchAlerts();
   }
 
-  // Delete handler
+  // Delete handler to clear matching entries out from the database rows
   async function deleteAlert(id: string) {
     const confirmDelete = window.confirm("Are you sure you want to delete this alert?");
     if (!confirmDelete) return;
@@ -93,14 +92,14 @@ export default function AlertsPage() {
     fetchAlerts();
   }
 
-  // Handler to enter Edit Mode for a single card
+  // Active inline configuration values modifier entry point hook
   function startEditing(alert: Alert) {
     setEditingId(alert.id);
     setEditTargetPrice(alert.target_price.toString());
     setEditEmail(alert.email);
   }
 
-  // Save Changes handler to update the row in Supabase using alert.id
+  // Save changes handler to update tracking target figures
   async function saveChanges(id: string) {
     const { error } = await supabase
       .from("Alerts")
@@ -116,7 +115,6 @@ export default function AlertsPage() {
       return;
     }
 
-    // Reset editing state and refresh the fresh data
     setEditingId(null);
     fetchAlerts();
   }
@@ -125,7 +123,7 @@ export default function AlertsPage() {
     <main style={{ padding: "20px", fontFamily: "sans-serif" }}>
       <h1>All Alerts</h1>
 
-      {/* Statistics Section Layout */}
+      {/* Statistics Block */}
       <div style={{ marginBottom: "20px", lineHeight: "1.6" }}>
         <p><strong>Total Alerts:</strong> {totalAlerts}</p>
         <p><strong>Active Alerts:</strong> {activeAlerts}</p>
@@ -143,7 +141,7 @@ export default function AlertsPage() {
         <p>No alerts found.</p>
       )}
 
-      {/* Loop through the alerts */}
+      {/* Grid wrapper looping individual alert item frames */}
       <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
         {alerts.map((alert) => {
           const isEditing = editingId === alert.id;
@@ -160,7 +158,6 @@ export default function AlertsPage() {
             >
               <p><strong>Route:</strong> {alert.origin} → {alert.destination}</p>
               
-              {/* Target Price display vs editable input field */}
               <p>
                 <strong>Target Price:</strong>{" "}
                 {isEditing ? (
@@ -175,16 +172,10 @@ export default function AlertsPage() {
                 )}
               </p>
               
-              {/* 3. Display Last Price Found */}
               <p><strong>Last Price Found:</strong> {alert.last_price_found ? `£${alert.last_price_found}` : "N/A"}</p>
-              
-              {/* 4. Display Last Airline */}
               <p><strong>Last Airline:</strong> {alert.last_airline || "N/A"}</p>
-              
-              {/* 5. Display Last Checked */}
               <p><strong>Last Checked:</strong> {alert.last_checked ? new Date(alert.last_checked).toLocaleString() : "Never"}</p>
 
-              {/* Email display vs editable input field */}
               <p>
                 <strong>Email:</strong>{" "}
                 {isEditing ? (
@@ -217,38 +208,21 @@ export default function AlertsPage() {
                 )}
               </p>
 
-              {/* Container for action buttons */}
+              {/* Action Buttons Interface */}
               <div style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
-                
-                {/* Dynamically display Save Changes vs Edit Alert button */}
                 {isEditing ? (
                   <>
                     <button
                       type="button"
                       onClick={() => saveChanges(alert.id)}
-                      style={{
-                        padding: "8px 12px",
-                        backgroundColor: "#0275d8",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontWeight: "bold"
-                      }}
+                      style={{ padding: "8px 12px", backgroundColor: "#0275d8", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
                     >
                       Save Changes
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditingId(null)}
-                      style={{
-                        padding: "8px 12px",
-                        backgroundColor: "#6c757d",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer"
-                      }}
+                      style={{ padding: "8px 12px", backgroundColor: "#6c757d", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
                     >
                       Cancel
                     </button>
@@ -257,48 +231,24 @@ export default function AlertsPage() {
                   <button
                     type="button"
                     onClick={() => startEditing(alert)}
-                    style={{
-                      padding: "8px 12px",
-                      backgroundColor: "#0275d8",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: "pointer"
-                    }}
+                    style={{ padding: "8px 12px", backgroundColor: "#0275d8", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
                   >
                     Edit Alert
                   </button>
                 )}
 
-                {/* Pause/Resume Alert Button */}
                 <button
                   type="button"
                   onClick={() => toggleMonitoring(alert.id, alert.active)}
-                  style={{
-                    padding: "8px 12px",
-                    backgroundColor: alert.active ? "#f0ad4e" : "#5cb85c",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer"
-                  }}
+                  style={{ padding: "8px 12px", backgroundColor: alert.active ? "#f0ad4e" : "#5cb85c", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
                 >
                   {alert.active ? "Pause Alert" : "Resume Alert"}
                 </button>
 
-                {/* Delete Alert Button */}
                 <button
                   type="button"
                   onClick={() => deleteAlert(alert.id)}
-                  style={{
-                    padding: "8px 12px",
-                    backgroundColor: "#d9534f",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer"
-
-                  }}
+                  style={{ padding: "8px 12px", backgroundColor: "#d9534f", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
                 >
                   Delete Alert
                 </button>
