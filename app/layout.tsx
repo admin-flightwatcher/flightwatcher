@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* ========================================================= */}
         {/* GOOGLE SITE INDEX VERIFICATION LAYER                      */}
         {/* ========================================================= */}
-        <meta name="google-site-verification" content="google276e65e34d107ed1" /> 
+        <meta name="google-site-verification" content="bz9kpQ2yBBa1wZCBiCjY_1uRWVdq9mQ5iMh1ZWtNgdk" /> 
       </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
