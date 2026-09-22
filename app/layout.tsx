@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FlightWatcher - Cheap Flight Alerts & Mistake Fares",
-  description: "Discover cheap flights, hidden deals, and mistake fares before everyone else.",
+  title: "FlightWatcher | Cheap Flight Alerts & Mistake Fares",
+  description: "Discover cheap flights, hidden deals, and mistake fares before everyone else. Set price tracking alerts instantly.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
