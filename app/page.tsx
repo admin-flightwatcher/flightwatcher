@@ -1,157 +1,342 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabase";
+import Link from "next/link";
+import { supabase } from "../lib/supabase"; 
 
-export default function LiveDeals() {
+const STATIC_AIRPORTS = [
+  { label: "London Heathrow (LHR)", city: "London", code: "LHR" },
+  { label: "London Gatwick (LGW)", city: "London", code: "LGW" },
+  { label: "London Stansted (STN)", city: "London", code: "STN" },
+  { label: "London Luton (LTN)", city: "London", code: "LTN" },
+  { label: "Manchester Airport (MAN)", city: "Manchester", code: "MAN" },
+  { label: "Dublin Airport (DUB)", city: "Dublin", code: "DUB" },
+  { label: "New York John F. Kennedy (JFK)", city: "New York", code: "JFK" },
+  { label: "Orlando International (MCO)", city: "Orlando", code: "MCO" },
+  { label: "Las Vegas Harry Reid (LAS)", city: "Las Vegas", code: "LAS" },
+  { label: "Barbados Grantley Adams (BGI)", city: "Barbados", code: "BGI" },
+  { label: "Dubai International (DXB)", city: "Dubai", code: "DXB" },
+  { label: "Bangkok Suvarnabhumi (BKK)", city: "Bangkok", code: "BKK" },
+  { label: "St Lucia Hewanorra (UVF)", city: "St Lucia", code: "UVF" },
+  { label: "Maldives Velana (MLE)", city: "Maldives", code: "MLE" },
+  { label: "Tokyo Haneda (HND)", city: "Tokyo", code: "HND" },
+  { label: "Singapore Changi (SIN)", city: "Singapore", code: "SIN" },
+];
+
+export default function HomePage() {
   const router = useRouter();
-  const [deals, setDeals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdatedText, setLastUpdatedText] = useState("Loading...");
 
-  async function loadDeals() {
-    try {
-      // Read Deals table from Supabase, sort by cheapest, limit to top 6 elements
-      const { data, error } = await supabase
-        .from("Deals")
-        .select("*")
-        .eq("active", true)
-        .order("price", { ascending: true })
-        .limit(6);
+  const [tripType, setTripType] = useState("return"); 
+  const [fromSearch, setFromSearch] = useState("Manchester Airport (MAN)");
+  const [fromCode, setFromCode] = useState("MAN");
+  const [fromSuggestions, setFromSuggestions] = useState<any[]>([]);
 
-      if (error) {
-        console.error("Error loading deals from Supabase:", error);
-        return;
-      }
+  const [toSearch, setToSearch] = useState("");
+  const [toCode, setToCode] = useState("");
+  const [toSuggestions, setToSuggestions] = useState<any[]>([]);
 
-      if (data) {
-        setDeals(data);
-        
-        // Refinement: Parse checked_at to determine precise Google Flights automated search interval milestones
-        const validDates = data
-          .map((d: any) => d.checked_at)
-          .filter(Boolean)
-          .map((d: string) => new Date(d).getTime());
-          
-        if (validDates.length > 0) {
-          const latestTime = new Date(Math.max(...validDates));
-          setLastUpdatedText(latestTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-        } else {
-          setLastUpdatedText("Just now");
-        }
-      }
-    } catch (err) {
-      console.error("Unexpected connection error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [departDate, setDepartDate] = useState("");
+  const [returnDate, setReturnDate] = useState("");
+  const [passengers, setPassengers] = useState("1");
+  
+  const [departFlex, setDepartFlex] = useState("0");
+  const [returnFlex, setReturnFlex] = useState("0");
+
+  const [manDeals, setManDeals] = useState<any[]>([]);
+  const [lonDeals, setLonDeals] = useState<any[]>([]);
+  const [dubDeals, setDubDeals] = useState<any[]>([]);
+  const [loadingDeals, setLoadingDeals] = useState(true);
 
   useEffect(() => {
-    loadDeals();
+    async function fetchHubDeals() {
+      try {
+        const { data: man } = await supabase.from("Deals").select("*").eq("origin", "MAN").eq("active", true).order("price", { ascending: true }).limit(3);
+        const { data: lon } = await supabase.from("Deals").select("*").eq("origin", "LHR").eq("active", true).order("price", { ascending: true }).limit(3);
+        const { data: dub } = await supabase.from("Deals").select("*").eq("origin", "DUB").eq("active", true).order("price", { ascending: true }).limit(3);
+
+        if (man) setManDeals(man);
+        if (lon) setLonDeals(lon);
+        if (dub) setDubDeals(dub);
+      } catch (err) {
+        console.error("Error retrieving trending hub deals:", err);
+      } finally {
+        setLoadingDeals(false);
+      }
+    }
+    fetchHubDeals();
   }, []);
 
-  // Format date helper to turn "2027-02-10" into "10 Feb"
-  const formatDateLabel = (dateStr: string) => {
-    if (!dateStr || dateStr === "N/A") return "";
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  useEffect(() => {
+    if (fromSearch.length < 2 || fromCode) {
+      setFromSuggestions([]);
+      return;
+    }
+    const filtered = STATIC_AIRPORTS.filter(
+      (a) =>
+        a.city.toLowerCase().includes(fromSearch.toLowerCase()) ||
+        a.label.toLowerCase().includes(fromSearch.toLowerCase()) ||
+        a.code.toLowerCase().includes(fromSearch.toLowerCase())
+    );
+    setFromSuggestions(filtered.slice(0, 5));
+  }, [fromSearch, fromCode]);
+
+  useEffect(() => {
+    if (toSearch.length < 2 || toCode) {
+      setToSuggestions([]);
+      return;
+    }
+    const filtered = STATIC_AIRPORTS.filter(
+      (a) =>
+        a.city.toLowerCase().includes(toSearch.toLowerCase()) ||
+        a.label.toLowerCase().includes(toSearch.toLowerCase()) ||
+        a.code.toLowerCase().includes(toSearch.toLowerCase())
+    );
+    setToSuggestions(filtered.slice(0, 5));
+  }, [toSearch, toCode]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!fromCode || !toCode) {
+      alert("Please explicitly click one of the dropdown choices from the suggested lists.");
+      return;
+    }
+
+    if (!departDate) {
+      alert("Error: Departure date is mandatory.");
+      return;
+    }
+
+    if (tripType === "return" && !returnDate) {
+      alert("Error: Return date is mandatory for return trips. Please select a return date or switch to a One-Way flight.");
+      return;
+    }
+
+    if (tripType === "return" && returnDate && new Date(returnDate) < new Date(departDate)) {
+      alert("Error: Invalid Date Selection. Return date cannot be before the departure date.");
+      return;
+    }
+
+    const resolvedReturnParam = tripType === "oneway" ? "" : returnDate;
+
+    router.push(`/search/results?from=${fromCode}&to=${toCode}&depart=${departDate}&departFlex=${departFlex}&return=${resolvedReturnParam}&returnFlex=${returnFlex}&passengers=${passengers}&tripType=${tripType}`);
   };
 
-  // Improved View Deal routing: dynamically routes search string constraints only
-  const handleViewDeal = (deal: any) => {
-    const from = deal.origin || "MAN";
-    const to = deal.destination || "JFK";
-    const depart = deal.departure_date || "2027-02-10";
-    const retDate = deal.return_date || "2027-02-17";
-    
-    router.push(
-      `/search/results?from=${from.toUpperCase()}&to=${to.toUpperCase()}&depart=${depart}&return=${retDate}&passengers=1`
-    );
-  };
+  const renderDealCards = (dealsArray: any[]) => {
+    if (dealsArray.length === 0) {
+      return <p style={{ color: "#ffffff", opacity: 0.7, paddingLeft: "10px" }}>No active deals found from this hub right now.</p>;
+    }
 
-  if (loading) {
+    const defaultFutureDate = new Date();
+    defaultFutureDate.setDate(defaultFutureDate.getDate() + 14);
+    const formattedFutureDate = defaultFutureDate.toISOString().split("T")[0];
+
     return (
-      <div className="text-center py-10 text-slate-400">
-        <p className="animate-pulse font-semibold">🔍 Scanning database for cheapest live deals...</p>
-      </div>
-    );
-  }
-
-  if (deals.length === 0) {
-    return (
-      <div className="text-center py-10 bg-slate-800/40 rounded-3xl border border-slate-700/50">
-        <p className="text-slate-300 font-medium">No live deals found in your database table yet.</p>
-        <p className="text-sm text-slate-500 mt-2">Run your backend script <code className="bg-slate-900 px-2 py-1 rounded text-yellow-400">node live-deals.js</code> to populate data!</p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-2">
-        <h2 className="text-4xl font-bold text-slate-900">🔥 Live Cheapest Deals</h2>
-        <div className="text-sm font-semibold px-3 py-1.5 bg-sky-50 text-sky-700 rounded-full border border-sky-100 self-start">
-          ⚡ Last Checked: {lastUpdatedText}
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-6">
-        {deals.map((deal) => (
-          <div 
-            key={deal.id} 
-            className="bg-white text-black rounded-3xl p-6 shadow-xl flex flex-col justify-between hover:scale-[1.02] transition-transform duration-200 min-h-[280px] border border-slate-100"
-          >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px", width: "100%", margin: "15px 0 35px 0" }}>
+        {dealsArray.map((deal) => (
+          <div key={deal.id} style={{ backgroundColor: "#ffffff", borderRadius: "12px", padding: "20px", color: "#111827", textAlign: "left", boxShadow: "0 4px 10px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div>
-              <div className="flex justify-between items-start">
-                <span className="text-5xl">
-                  {deal.destination_name?.toLowerCase().includes("york") && "🗽"}
-                  {deal.destination_name?.toLowerCase().includes("orlando") && "☀️"}
-                  {deal.destination_name?.toLowerCase().includes("vegas") && "🎰"}
-                  {deal.destination_name?.toLowerCase().includes("dubai") && "🏙️"}
-                  {deal.destination_name?.toLowerCase().includes("barbados") && "🏝️"}
-                  {deal.destination_name?.toLowerCase().includes("lucia") && "🥥"}
-                  {deal.destination_name?.toLowerCase().includes("bangkok") && "🛕"}
-                  {deal.destination_name?.toLowerCase().includes("maldives") && "🐠"}
-                  {deal.destination_name?.toLowerCase().includes("tokyo") && "🗾"}
-                  {deal.destination_name?.toLowerCase().includes("singapore") && "🦁"}
-                  {!["york", "orlando", "vegas", "dubai", "barbados", "lucia", "bangkok", "maldives", "tokyo", "singapore"].some(k => deal.destination_name?.toLowerCase().includes(k)) && "✈️"}
-                </span>
-                
-                <span className="text-xs uppercase bg-slate-100 px-2.5 py-1 rounded-md font-bold text-slate-600 tracking-wider">
-                  {deal.stops === 0 ? "Direct" : `${deal.stops} Stop${deal.stops > 1 ? 's' : ''}`}
-                </span>
-              </div>
-              
-              <h3 className="text-2xl font-bold mt-4 text-slate-900">{deal.destination_name || "Unknown"}</h3>
-              
-              <p className="text-slate-500 font-semibold text-sm mt-1">
-                {deal.origin?.toUpperCase()} → {deal.destination?.toUpperCase()}
-              </p>
-              
-              {deal.departure_date && (
-                <p className="text-sm text-slate-700 font-medium mt-3 bg-slate-50 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5">
-                  📅 {formatDateLabel(deal.departure_date)} - {formatDateLabel(deal.return_date)}
-                </p>
-              )}
-
-              <p className="text-xs text-slate-400 mt-3 italic block">✈️ {deal.airline || "Various Airlines"}</p>
+              <h4 style={{ margin: "0 0 4px 0", fontSize: "18px", fontWeight: "bold" }}>✈️ {deal.destination_name || "Special Deal"} ({deal.destination})</h4>
+              <p style={{ margin: "0 0 10px 0", fontSize: "13px", color: "#4b5563" }}>Route: {deal.origin} → {deal.destination}</p>
             </div>
-
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
-              <span className="text-sky-600 text-3xl font-extrabold">£{deal.price}</span>
-              <button
-                type="button"
-                onClick={() => handleViewDeal(deal)}
-                className="bg-sky-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-sky-600 transition-colors shadow-md shadow-sky-500/20"
-              >
-                View Deal
-              </button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f3f4f6", paddingTop: "10px", marginTop: "10px" }}>
+              <span style={{ fontSize: "22px", fontWeight: "900", color: "#2563eb" }}>£{deal.price}</span>
+              <Link href={`/search/results?from=${deal.origin}&to=${deal.destination}&depart=${formattedFutureDate}&return=&passengers=1&tripType=oneway`} style={{ backgroundColor: "#2563eb", color: "#ffffff", padding: "6px 14px", borderRadius: "6px", textDecoration: "none", fontSize: "13px", fontWeight: "bold" }}>
+                View
+              </Link>
             </div>
           </div>
         ))}
       </div>
-    </div>
+    );
+  };
+
+  const todayDateString = new Date().toISOString().split("T")[0];
+
+  return (
+    <main style={{ minHeight: "100vh", background: "linear-gradient(135deg, #0070f3 0%, #000046 100%)", color: "#ffffff", fontFamily: "sans-serif", paddingBottom: "60px" }}>
+      
+      {/* HEADER UPDATE: Turned title into a hyperlink pointing to "/" */}
+      <div style={{ textAlign: "center", padding: "60px 20px 30px 20px" }}>
+        <h1 style={{ fontSize: "48px", fontWeight: "900", margin: "0 0 10px 0", letterSpacing: "-1px" }}>
+          <Link href="/" style={{ color: "#ffffff", textDecoration: "none" }}>
+            FlightWatcher
+          </Link>
+        </h1>
+        <p style={{ fontSize: "18px", opacity: 0.9, maxWidth: "600px", margin: "0 auto 30px auto" }}>Discover cheap flights, hidden deals and mistake fares before everyone else.</p>
+        <div style={{ display: "flex", justifyContent: "center", gap: "15px" }}>
+          <button type="button" style={{ backgroundColor: "#ffd700", color: "#111827", border: "none", padding: "12px 24px", borderRadius: "8px", fontWeight: "bold" }}>Join Free Alerts</button>
+          <Link href="/live-deals" style={{ backgroundColor: "transparent", color: "#ffffff", border: "2px solid #ffffff", padding: "10px 24px", borderRadius: "8px", fontWeight: "bold", textDecoration: "none" }}>View Live Deals</Link>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: "1150px", margin: "0 auto 60px auto", padding: "0 20px" }}>
+        
+        {/* Trip Type Selector Toggle Buttons */}
+        <div style={{ display: "flex", gap: "10px", marginBottom: "12px", paddingLeft: "5px" }}>
+          <button 
+            type="button" 
+            onClick={() => setTripType("return")}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "20px",
+              border: "none",
+              fontWeight: "bold",
+              fontSize: "13px",
+              cursor: "pointer",
+              backgroundColor: tripType === "return" ? "#ffd700" : "rgba(255,255,255,0.2)",
+              color: tripType === "return" ? "#111827" : "#ffffff",
+              transition: "all 0.2s"
+            }}
+          >
+            🔄 Return Trip
+          </button>
+          <button 
+            type="button" 
+            onClick={() => { setTripType("oneway"); setReturnDate(""); }}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "20px",
+              border: "none",
+              fontWeight: "bold",
+              fontSize: "13px",
+              cursor: "pointer",
+              backgroundColor: tripType === "oneway" ? "#ffd700" : "rgba(255,255,255,0.2)",
+              color: tripType === "oneway" ? "#111827" : "#ffffff",
+              transition: "all 0.2s"
+            }}
+          >
+            ➡️ One-Way Flight
+          </button>
+        </div>
+
+        <form onSubmit={handleSearchSubmit} style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "25px", display: "flex", flexWrap: "wrap", gap: "15px", alignItems: "flex-end", boxShadow: "0 10px 25px rgba(0,0,0,0.2)" }}>
+          
+          {/* Origin Input Search Block */}
+          <div style={{ flex: "2", minWidth: "200px", position: "relative" }}>
+            <label style={{ display: "block", color: "#4b5563", fontSize: "12px", fontWeight: "bold", marginBottom: "6px" }}>Origin City</label>
+            <input type="text" value={fromSearch} onChange={(e) => { setFromSearch(e.target.value); setFromCode(""); }} style={{ width: "100%", padding: "11px", border: "1px solid #d1d5db", borderRadius: "8px", color: "#111827", boxSizing: "border-box" }} placeholder="Type London, Manchester..." required />
+            {fromSuggestions.length > 0 && (
+              <div style={{ position: "absolute", zIndex: 10, left: 0, right: 0, backgroundColor: "white", border: "1px solid #ccc", borderRadius: "6px", marginTop: "4px", maxHeight: "200px", overflowY: "auto", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+                {fromSuggestions.map((s, idx) => (
+                  <div key={idx} onClick={() => { setFromSearch(s.label); setFromCode(s.code); setFromSuggestions([]); }} style={{ padding: "10px", color: "#111827", cursor: "pointer", borderBottom: "1px solid #eee" }}>
+                    ✈️ {s.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Destination Input Search Block */}
+          <div style={{ flex: "2", minWidth: "200px", position: "relative" }}>
+            <label style={{ display: "block", color: "#4b5563", fontSize: "12px", fontWeight: "bold", marginBottom: "6px" }}>Destination City</label>
+            <input type="text" value={toSearch} onChange={(e) => { setToSearch(e.target.value); setToCode(""); }} style={{ width: "100%", padding: "11px", border: "1px solid #d1d5db", borderRadius: "8px", color: "#111827", boxSizing: "border-box" }} placeholder="Type London, Dubai, New York..." required />
+            {toSuggestions.length > 0 && (
+              <div style={{ position: "absolute", zIndex: 10, left: 0, right: 0, backgroundColor: "white", border: "1px solid #ccc", borderRadius: "6px", marginTop: "4px", maxHeight: "200px", overflowY: "auto", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+                {toSuggestions.map((s, idx) => (
+                  <div key={idx} onClick={() => { setToSearch(s.label); setToCode(s.code); setToSuggestions([]); }} style={{ padding: "10px", color: "#111827", cursor: "pointer", borderBottom: "1px solid #eee" }}>
+                    ✈️ {s.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Departure Date Input Layout (With added 1 Month option) */}
+          <div style={{ flex: "1.6", minWidth: "220px", display: "flex", gap: "10px" }}>
+            <div style={{ flex: "1.8" }}>
+              <label style={{ display: "block", color: "#4b5563", fontSize: "12px", fontWeight: "bold", marginBottom: "6px", whiteSpace: "nowrap" }}>Departure Date *</label>
+              <input 
+                type="date" 
+                value={departDate} 
+                onChange={(e) => setDepartDate(e.target.value)} 
+                min={todayDateString} 
+                style={{ width: "100%", padding: "10px", border: "1px solid #d1d5db", borderRadius: "8px", color: "#111827", boxSizing: "border-box", height: "40px" }} 
+                required 
+              />
+            </div>
+            <div style={{ flex: "1.2", minWidth: "85px" }}>
+              <label style={{ display: "block", color: "#4b5563", fontSize: "12px", fontWeight: "bold", marginBottom: "6px", textAlign: "center" }}>+/-</label>
+              <select value={departFlex} onChange={(e) => setDepartFlex(e.target.value)} style={{ width: "100%", padding: "10px", border: "1px solid #d1d5db", borderRadius: "8px", color: "#111827", backgroundColor: "white", fontSize: "13px", fontWeight: "600", height: "40px", cursor: "pointer" }}>
+                <option value="0">Exact</option>
+                <option value="3">3 Days</option>
+                <option value="7">7 Days</option>
+                <option value="14">14 Days</option>
+                <option value="30">1 Month</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Return Date Input Layout (With added 1 Month option) */}
+          <div style={{ flex: "1.6", minWidth: "220px", display: "flex", gap: "10px" }}>
+            <div style={{ flex: "1.8" }}>
+              <label style={{ display: "block", color: tripType === "oneway" ? "#9ca3af" : "#4b5563", fontSize: "12px", fontWeight: "bold", marginBottom: "6px", whiteSpace: "nowrap" }}>
+                Return Date {tripType === "return" ? "*" : "(Disabled)"}
+              </label>
+              <input 
+                type="date" 
+                value={returnDate} 
+                onChange={(e) => setReturnDate(e.target.value)} 
+                disabled={tripType === "oneway"}
+                required={tripType === "return"}
+                min={departDate || todayDateString}
+                style={{ 
+                  width: "100%", 
+                  padding: "10px", 
+                  border: "1px solid #d1d5db", 
+                  borderRadius: "8px", 
+                  color: tripType === "oneway" ? "#9ca3af" : "#111827", 
+                  backgroundColor: tripType === "oneway" ? "#f3f4f6" : "#ffffff",
+                  boxSizing: "border-box",
+                  cursor: tripType === "oneway" ? "not-allowed" : "default",
+                  height: "40px"
+                }} 
+              />
+            </div>
+            <div style={{ flex: "1.2", minWidth: "85px" }}>
+              <label style={{ display: "block", color: tripType === "oneway" ? "#9ca3af" : "#4b5563", fontSize: "12px", fontWeight: "bold", marginBottom: "6px", textAlign: "center" }}>+/-</label>
+              <select value={returnFlex} onChange={(e) => setReturnFlex(e.target.value)} disabled={tripType === "oneway"} style={{ width: "100%", padding: "10px", border: "1px solid #d1d5db", borderRadius: "8px", color: tripType === "oneway" ? "#9ca3af" : "#111827", backgroundColor: tripType === "oneway" ? "#f3f4f6" : "white", fontSize: "13px", fontWeight: "600", cursor: tripType === "oneway" ? "not-allowed" : "default", height: "40px" }}>
+                <option value="0">Exact</option>
+                <option value="3">3 Days</option>
+                <option value="7">7 Days</option>
+                <option value="14">14 Days</option>
+                <option value="30">1 Month</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Passenger Selector */}
+          <div style={{ flex: "0.8", minWidth: "85px" }}>
+            <label style={{ display: "block", color: "#4b5563", fontSize: "12px", fontWeight: "bold", marginBottom: "6px" }}>Passengers</label>
+            <select value={passengers} onChange={(e) => setPassengers(e.target.value)} style={{ width: "100%", padding: "11px", border: "1px solid #d1d5db", borderRadius: "8px", color: "#111827", backgroundColor: "white", boxSizing: "border-box", height: "40px" }}>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+
+          <button type="submit" style={{ backgroundColor: "#0070f3", color: "#ffffff", border: "none", padding: "12px 24px", borderRadius: "8px", fontWeight: "bold", cursor: "pointer", height: "40px" }}>Search</button>
+        </form>
+      </div>
+
+      {/* Airport Hub Opportunity Dashboard Lists Grid Matrix */}
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px" }}>
+        <h2 style={{ fontSize: "28px", fontWeight: "bold", borderBottom: "2px solid rgba(255,255,255,0.2)", paddingBottom: "10px" }}>Trending Hub Opportunities</h2>
+        {loadingDeals ? (
+          <p style={{ textAlign: "center", padding: "40px" }}>Syncing cheapest pricing grids...</p>
+        ) : (
+          <>
+            <h3 style={{ fontSize: "22px", margin: "30px 0 10px 0", color: "#ffd700" }}>✈️ Best Deals from Manchester</h3>
+            {renderDealCards(manDeals)}
+            <h3 style={{ fontSize: "22px", margin: "30px 0 10px 0", color: "#ffd700" }}>✈️ Best Deals from London</h3>
+            {renderDealCards(lonDeals)}
+            <h3 style={{ fontSize: "22px", margin: "30px 0 10px 0", color: "#ffd700" }}>✈️ Best Deals from Dublin</h3>
+            {renderDealCards(dubDeals)}
+          </>
+        )}
+      </div>
+    </main>
   );
 }

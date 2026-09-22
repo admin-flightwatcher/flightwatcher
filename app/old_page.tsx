@@ -122,23 +122,23 @@ export default function LiveDeals() {
   };
 
   if (loading) {
-    return <p style={{ textAlign: "center", padding: "20px", color: "#4b5563" }}>Loading active travel deals...</p>;
+    return <p style={{ textAlign: "center", padding: "20px", color: "#111827" }}>Loading active travel deals...</p>;
   }
 
   if (deals.length === 0) {
-    return <p style={{ textAlign: "center", padding: "20px", color: "#4b5563" }}>No current deals available. Run the live script to add values!</p>;
+    return <p style={{ textAlign: "center", padding: "20px", color: "#111827" }}>No current deals available. Run the live script to add values!</p>;
   }
 
   const bestDeal = deals[0];
   const gridDeals = deals.slice(1);
 
   return (
-    <div style={{ width: "100%", maxWidth: "1400px", margin: "0 auto", padding: "20px", fontFamily: "sans-serif", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", maxWidth: "1200px", margin: "0 auto", padding: "20px", fontFamily: "sans-serif", boxSizing: "border-box" }}>
       
-      {/* Title Header with high contrast styling text */}
+      {/* Title Header Section */}
       <div style={{ textAlign: "center", marginBottom: "35px" }}>
         <h2 style={{ margin: "0 0 6px 0", fontSize: "32px", fontWeight: "bold", color: "#111827" }}>🔥 Live Cheapest Deals</h2>
-        <p style={{ margin: "0 0 12px 0", color: "#4b5563", fontSize: "15px", fontWeight: "500" }}>
+        <p style={{ margin: "0 0 12px 0", color: "#111827", fontSize: "15px", fontWeight: "600" }}>
           Showing <strong>{deals.length} live deals</strong> • Updated at {lastUpdatedText}
         </p>
         <div style={{
@@ -146,7 +146,7 @@ export default function LiveDeals() {
           fontSize: "12px",
           fontWeight: "bold",
           backgroundColor: "#f3f4f6",
-          color: "#1f2937",
+          color: "#111827",
           padding: "6px 16px",
           borderRadius: "20px",
           border: "1px solid #e5e7eb"
@@ -155,19 +155,18 @@ export default function LiveDeals() {
         </div>
       </div>
 
-      {/* 🏆 Best Deal Showcase Layout Block */}
+      {/* 🏆 Best Deal Showcase Layout Featured Card */}
       {bestDeal && (
         <div style={{
           border: "2px solid #ffd700",
           borderRadius: "16px",
           padding: "25px",
-          width: "100%",
           background: "linear-gradient(135deg, #fffdf0 0%, #ffffff 100%)",
           boxShadow: "0 8px 16px rgba(255, 215, 0, 0.15)",
           marginBottom: "35px",
           position: "relative",
           overflow: "hidden",
-          textAlign: "left",
+          textAlign: "left", // Formats content alignment back to left inside card structure
           boxSizing: "border-box"
         }}>
           <div style={{
@@ -190,16 +189,16 @@ export default function LiveDeals() {
               <h3 style={{ margin: "0 0 6px 0", fontSize: "28px", color: "#111827", display: "flex", alignItems: "center", gap: "8px", fontWeight: "bold" }}>
                 {getDestinationEmoji(bestDeal.destination_name)} {bestDeal.destination_name}
               </h3>
-              <p style={{ margin: "0 0 6px 0", fontSize: "16px", color: "#374151", fontWeight: "bold" }}>
+              <p style={{ margin: "0 0 6px 0", fontSize: "16px", color: "#111827", fontWeight: "bold" }}>
                 {bestDeal.origin?.toUpperCase()} → {bestDeal.destination?.toUpperCase()}
               </p>
               {bestDeal.departure_date && bestDeal.departure_date !== "N/A" && (
-                <p style={{ margin: "0 0 10px 0", fontSize: "14px", color: "#4b5563", fontWeight: "600" }}>
+                <p style={{ margin: "0 0 10px 0", fontSize: "14px", color: "#111827", fontWeight: "600" }}>
                   📅 {formatDateLabel(bestDeal.departure_date)} - {formatDateLabel(bestDeal.return_date)}
                 </p>
               )}
               <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "14px", color: "#4b5563", fontWeight: "600" }}>✈️ {bestDeal.airline || "Various Airlines"}</span>
+                <span style={{ fontSize: "14px", color: "#111827", fontWeight: "600" }}>✈️ {bestDeal.airline || "Various Airlines"}</span>
                 {renderStopsBadge(bestDeal.stops)}
               </div>
             </div>
@@ -240,7 +239,7 @@ export default function LiveDeals() {
       {/* Grid container layout presenting remaining deals dynamically */}
       <div style={{ 
         display: "grid", 
-        gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))", 
+        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", 
         gap: "20px",
         width: "100%",
         boxSizing: "border-box"
@@ -257,46 +256,61 @@ export default function LiveDeals() {
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
-              minHeight: "240px",
-              textAlign: "left",
+              minHeight: "270px",
+              textAlign: "left", // Overrides center styles from global wrappers
               boxSizing: "border-box"
             }}
           >
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "12px", gap: "10px" }}>
-                <h3 style={{ margin: "0", fontSize: "20px", color: "#111827", display: "flex", alignItems: "center", gap: "6px", fontWeight: "bold" }}>
+                <h3 style={{ margin: "0", fontSize: "22px", color: "#111827", display: "flex", alignItems: "center", gap: "6px", fontWeight: "bold" }}>
                   {getDestinationEmoji(deal.destination_name)} {deal.destination_name}
                 </h3>
                 {renderStopsBadge(deal.stops)}
               </div>
               
-              <p style={{ margin: "0 0 6px 0", fontSize: "14px", color: "#374151", fontWeight: "bold" }}>
+              {/* Route Information */}
+              <p style={{ margin: "0 0 6px 0", fontSize: "14px", color: "#111827", fontWeight: "bold" }}>
                 {deal.origin?.toUpperCase()} → {deal.destination?.toUpperCase()}
               </p>
 
+              {/* Date Information */}
               {deal.departure_date && deal.departure_date !== "N/A" && (
-                <p style={{ margin: "0 0 12px 0", fontSize: "13px", color: "#4b5563", fontWeight: "600" }}>
+                <p style={{ margin: "0 0 10px 0", fontSize: "13px", color: "#111827", fontWeight: "600" }}>
                   📅 {formatDateLabel(deal.departure_date)} - {formatDateLabel(deal.return_date)}
                 </p>
               )}
-              
-              <p style={{ margin: "0 0 16px 0", fontSize: "13px", color: "#6b7280" }}>
-                ✈️ {deal.airline || "Various Airlines"}
-              </p>
+
+              {/* Airline Information */}
+              <div style={{ marginBottom: "12px" }}>
+                <p style={{ margin: "0", fontSize: "13px", color: "#111827", fontWeight: "600" }}>
+                  ✈️ {deal.airline || "Various Airlines"}
+                </p>
+              </div>
+
+              {/* Price Drop Badge */}
+              {deal.price_drop > 0 && (
+                <div style={{
+                  display: "inline-block",
+                  backgroundColor: "#fef2f2",
+                  color: "#dc2626",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                  padding: "5px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid #fca5a5",
+                  marginBottom: "8px"
+                }}>
+                  🔥 Price Dropped £{deal.price_drop}
+                </div>
+              )}
             </div>
 
-            {/* Bottom Actions Row */}
-            <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: "14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                {deal.price_drop > 0 && (
-                  <div style={{ color: "#dc2626", fontWeight: "bold", fontSize: "12px", marginBottom: "2px" }}>
-                    🔥 Save £{deal.price_drop}
-                  </div>
-                )}
-                <div style={{ fontSize: "24px", fontWeight: "800", color: "#2563eb" }}>
-                  £{deal.price}
-                </div>
-              </div>
+            {/* Price Display and View Deal Button */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto", paddingTop: "12px", borderTop: "1px solid #f3f4f6" }}>
+              <span style={{ fontSize: "26px", fontWeight: "bold", color: "#2563eb" }}>
+                £{deal.price}
+              </span>
 
               <button
                 type="button"
@@ -306,7 +320,7 @@ export default function LiveDeals() {
                   backgroundColor: "#2563eb",
                   color: "white",
                   border: "none",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   cursor: "pointer",
                   fontWeight: "bold",
                   fontSize: "14px"
